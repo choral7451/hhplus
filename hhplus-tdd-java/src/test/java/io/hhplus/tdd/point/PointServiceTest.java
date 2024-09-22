@@ -70,11 +70,11 @@ class PointServiceTest {
 		when(userPointTable.insertOrUpdate(userId, amount)).thenReturn(userPoint);
 
 		// when
-		this.pointService.charge(userId, amount);
+		UserPoint expectedUserPoint = this.pointService.charge(userId, amount);
 
 		// then
-		assertEquals(userId, userPoint.id());
-		assertEquals(amount, userPoint.point());
+		assertEquals(userId, expectedUserPoint.id());
+		assertEquals(amount, expectedUserPoint.point());
 
 		verify(userPointTable).insertOrUpdate(anyLong(), anyLong());
 	}
