@@ -10,6 +10,14 @@ import lombok.RequiredArgsConstructor;
 public class PointService {
 	private final UserPointTable userPointTable;
 
+	public UserPoint getUserPoint(Long userId) {
+		if (userId <= 0) {
+			throw new IllegalArgumentException("사용자 아이디는 0보다 큰 숫자이어야 합니다.");
+		}
+		
+		return this.userPointTable.selectById(userId);
+	}
+
 	public UserPoint charge(Long userId, Long amount) {
 
 		if (amount == null || amount <= 0) {

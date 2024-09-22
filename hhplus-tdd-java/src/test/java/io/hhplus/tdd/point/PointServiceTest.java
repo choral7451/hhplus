@@ -22,6 +22,43 @@ class PointServiceTest {
 	private UserPointTable userPointTable;
 
 	@Test
+	@DisplayName("유저의 포인트를 조회합니다.")
+	public void getUserPointByUserId() throws Exception {
+
+		//given
+		long userId = 1L;
+		long point = 1000L;
+
+		UserPoint userPoint = new UserPoint(userId, point, System.currentTimeMillis());
+		when(userPointTable.selectById(userId)).thenReturn(userPoint);
+
+		// when
+		UserPoint expectedUserPoint = this.pointService.getUserPoint(userId);
+
+		// then
+		assertEquals(userId, expectedUserPoint.id());
+		assertEquals(point, expectedUserPoint.point());
+
+		verify(userPointTable).selectById(anyLong());
+	}
+
+	@Test
+	@DisplayName("유효하지 않는 유저의 포인트를 조회합니다.")
+	public void getUserPointByInvalidUserId() throws Exception {
+
+		//given
+		long invalidUserId = -1L;
+
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+			pointService.getUserPoint(invalidUserId);
+		});
+
+		// then
+		assertEquals("사용자 아이디는 0보다 큰 숫자이어야 합니다.", exception.getMessage());
+		verify(userPointTable, never()).selectById(anyLong());
+	}
+
+	@Test
 	@DisplayName("유저의 포인트를 충전합니다.")
 	public void charge() throws Exception {
 
