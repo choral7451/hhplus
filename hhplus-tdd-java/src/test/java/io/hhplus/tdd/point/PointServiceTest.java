@@ -80,7 +80,7 @@ class PointServiceTest {
 	}
 
 	@Test
-	@DisplayName("충전 금액이 0 이하일 때 IllegalArgumentException이 발생합니다.")
+	@DisplayName("유효하지 않는 포인트 금액을 충전")
 	public void chargeNegativeAmount() {
 		//given
 		long userId = 1L;
