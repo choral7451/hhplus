@@ -22,6 +22,72 @@ class PointServiceTest {
 	private UserPointTable userPointTable;
 
 	@Test
+	@DisplayName("유저의 포인트를 사용합니다.")
+	public void use() throws Exception {
+
+		//given
+		long userId = 1L;
+		long point = 10000L;
+		long amount = 1000L;
+
+		UserPoint userPoint = new UserPoint(userId, point, System.currentTimeMillis());
+		when(userPointTable.selectById(userId)).thenReturn(userPoint);
+		when(userPointTable.insertOrUpdate(userId, point - amount))
+			.thenReturn(new UserPoint(userId, point - amount, System.currentTimeMillis()));
+
+		// when
+		UserPoint expectedUserPoint = this.pointService.use(userId, amount);
+
+		// then
+		assertEquals(userId, expectedUserPoint.id());
+		assertEquals(point - amount, expectedUserPoint.point());
+
+		verify(userPointTable).insertOrUpdate(anyLong(), anyLong());
+	}
+
+	@Test
+	@DisplayName("유효하지 않는 유저의 포인트를 사용합니다.")
+	public void useByInvalidUser() throws Exception {
+		//given
+		long invalidUserId = 1L;
+		long amount = 1000L;
+
+		when(userPointTable.selectById(invalidUserId)).thenReturn(null);
+
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+			pointService.use(invalidUserId, amount);
+		});
+
+		// then
+		assertEquals("사용자가 존재하지 않습니다.", exception.getMessage());
+
+		verify(userPointTable).selectById(anyLong());
+		verify(userPointTable, never()).insertOrUpdate(anyLong(), anyLong());
+	}
+
+	@Test
+	@DisplayName("유저의 유효하지 않는 포인트를 사용합니다.")
+	public void useByInvalidUserPoint() throws Exception {
+		//given
+		long userId = 1L;
+		long InvalidPoint = 1000L;
+		long amount = 10000L;
+
+		UserPoint userPoint = new UserPoint(userId, InvalidPoint, System.currentTimeMillis());
+		when(userPointTable.selectById(userId)).thenReturn(userPoint);
+
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+			pointService.use(userId, amount);
+		});
+
+		// then
+		assertEquals("사용 포인트가 부족합니다.", exception.getMessage());
+
+		verify(userPointTable).selectById(anyLong());
+		verify(userPointTable, never()).insertOrUpdate(anyLong(), anyLong());
+	}
+
+	@Test
 	@DisplayName("유저의 포인트를 조회합니다.")
 	public void getUserPointByUserId() throws Exception {
 

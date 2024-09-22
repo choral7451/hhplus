@@ -10,11 +10,26 @@ import lombok.RequiredArgsConstructor;
 public class PointService {
 	private final UserPointTable userPointTable;
 
+	public UserPoint use(Long userId, Long amount) {
+		if (amount == null || amount <= 0) {
+			throw new IllegalArgumentException("사용 금액은 0보다 큰 숫자이어야 합니다.");
+		}
+
+		UserPoint user = this.userPointTable.selectById(userId);
+		if (user == null) {
+			throw new IllegalArgumentException("사용자가 존재하지 않습니다.");
+		} else if (user.point() < amount) {
+			throw new IllegalArgumentException("사용 포인트가 부족합니다.");
+		} else {
+			return this.userPointTable.insertOrUpdate(userId, user.point() - amount);
+		}
+	}
+
 	public UserPoint getUserPoint(Long userId) {
 		if (userId <= 0) {
 			throw new IllegalArgumentException("사용자 아이디는 0보다 큰 숫자이어야 합니다.");
 		}
-		
+
 		return this.userPointTable.selectById(userId);
 	}
 
