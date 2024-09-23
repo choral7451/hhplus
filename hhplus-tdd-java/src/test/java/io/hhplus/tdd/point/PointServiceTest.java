@@ -3,6 +3,8 @@ package io.hhplus.tdd.point;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import java.util.List;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -10,6 +12,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import io.hhplus.tdd.database.PointHistoryTable;
 import io.hhplus.tdd.database.UserPointTable;
 
 @ExtendWith(MockitoExtension.class)
@@ -20,6 +23,9 @@ class PointServiceTest {
 
 	@Mock
 	private UserPointTable userPointTable;
+
+	@Mock
+	private PointHistoryTable pointHistoryTable;
 
 	@Test
 	@DisplayName("유저의 포인트를 사용합니다.")
@@ -160,5 +166,48 @@ class PointServiceTest {
 		// then
 		assertEquals("충전 금액은 0보다 큰 숫자이어야 합니다.", exception.getMessage());
 		verify(userPointTable, never()).insertOrUpdate(anyLong(), anyLong());
+	}
+
+	@Test
+	@DisplayName("유저의 포인트 충전/이용 내역을 조회합니다.")
+	public void getPointHistories() throws Exception {
+		//given
+		long userId = 1L;
+		PointHistory history1 = new PointHistory(1, userId, 1000, TransactionType.CHARGE, System.currentTimeMillis());
+		PointHistory history2 = new PointHistory(2, userId, 500, TransactionType.USE, System.currentTimeMillis());
+		List<PointHistory> pointHistories = List.of(history1, history2);
+
+		when(pointHistoryTable.selectAllByUserId(userId)).thenReturn(pointHistories);
+
+		// when
+		List<PointHistory> expectedPointHistories = this.pointService.getPointHistories(userId);
+
+		// then
+		assertEquals(history1.id(), expectedPointHistories.get(0).id());
+		assertEquals(history1.userId(), expectedPointHistories.get(0).userId());
+		assertEquals(history1.amount(), expectedPointHistories.get(0).amount());
+		assertEquals(history1.type(), expectedPointHistories.get(0).type());
+		assertEquals(history2.id(), expectedPointHistories.get(1).id());
+		assertEquals(history2.userId(), expectedPointHistories.get(1).userId());
+		assertEquals(history2.amount(), expectedPointHistories.get(1).amount());
+		assertEquals(history2.type(), expectedPointHistories.get(1).type());
+
+		verify(pointHistoryTable).selectAllByUserId(anyLong());
+	}
+
+	@Test
+	@DisplayName("유효하지 않는 유저의 포인트 내역을 조회합니다.")
+	public void getPointHistoriesByInvalidUserId() throws Exception {
+		//given
+		long invalidUserId = -1L;
+
+		// when
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+			pointService.getPointHistories(invalidUserId);
+		});
+
+		// then
+		assertEquals("사용자 아이디는 0보다 큰 숫자이어야 합니다.", exception.getMessage());
+		verify(pointHistoryTable, never()).selectAllByUserId(anyLong());
 	}
 }
