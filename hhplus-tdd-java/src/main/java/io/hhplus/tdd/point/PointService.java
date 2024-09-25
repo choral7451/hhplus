@@ -1,6 +1,8 @@
 package io.hhplus.tdd.point;
 
 import java.util.List;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.springframework.stereotype.Service;
 
@@ -14,21 +16,28 @@ public class PointService {
 	private final UserPointTable userPointTable;
 	private final PointHistoryTable pointHistoryTable;
 
+	private static final Lock lock = new ReentrantLock();
+
 	public UserPoint use(Long userId, Long amount) {
-		if (amount == null || amount <= 0) {
-			throw new IllegalArgumentException("사용 금액은 0보다 큰 숫자이어야 합니다.");
-		}
+		lock.lock();
+		try {
+			if (amount == null || amount <= 0) {
+				throw new IllegalArgumentException("사용 금액은 0보다 큰 숫자이어야 합니다.");
+			}
 
-		UserPoint user = this.userPointTable.selectById(userId);
-		if (user == null) {
-			throw new IllegalArgumentException("사용자가 존재하지 않습니다.");
-		} else if (user.point() < amount) {
-			throw new IllegalArgumentException("사용 포인트가 부족합니다.");
-		} else {
-			UserPoint updatedUserPoint = this.userPointTable.insertOrUpdate(userId, user.point() - amount);
-			this.pointHistoryTable.insert(userId, amount, TransactionType.USE, updatedUserPoint.updateMillis());
+			UserPoint user = this.userPointTable.selectById(userId);
+			if (user == null) {
+				throw new IllegalArgumentException("사용자가 존재하지 않습니다.");
+			} else if (user.point() < amount) {
+				throw new IllegalArgumentException("사용 포인트가 부족합니다.");
+			} else {
+				UserPoint updatedUserPoint = this.userPointTable.insertOrUpdate(userId, user.point() - amount);
+				this.pointHistoryTable.insert(userId, amount, TransactionType.USE, updatedUserPoint.updateMillis());
 
-			return updatedUserPoint;
+				return updatedUserPoint;
+			}
+		} finally {
+			lock.unlock();
 		}
 	}
 
@@ -41,20 +50,26 @@ public class PointService {
 	}
 
 	public UserPoint charge(Long userId, Long amount) {
-		if (amount == null || amount <= 0) {
-			throw new IllegalArgumentException("충전 금액은 0보다 큰 숫자이어야 합니다.");
+		lock.lock();
+		try {
+			if (amount == null || amount <= 0) {
+				throw new IllegalArgumentException("충전 금액은 0보다 큰 숫자이어야 합니다.");
+			}
+
+			long updateAmount = amount;
+			UserPoint user = this.userPointTable.selectById(userId);
+			if (user != null) {
+				updateAmount = user.point() + amount;
+			}
+
+			UserPoint updatedUserPoint = this.userPointTable.insertOrUpdate(userId, updateAmount);
+			this.pointHistoryTable.insert(userId, amount, TransactionType.CHARGE, updatedUserPoint.updateMillis());
+
+			return updatedUserPoint;
+		} finally {
+			lock.unlock();
 		}
 
-		long updateAmount = amount;
-		UserPoint user = this.userPointTable.selectById(userId);
-		if (user != null) {
-			updateAmount = user.point() + amount;
-		}
-
-		UserPoint updatedUserPoint =  this.userPointTable.insertOrUpdate(userId, updateAmount);
-		this.pointHistoryTable.insert(userId, amount, TransactionType.CHARGE, updatedUserPoint.updateMillis());
-
-		return updatedUserPoint;
 	}
 
 	public List<PointHistory> getPointHistories(Long userId) {
