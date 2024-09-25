@@ -25,7 +25,10 @@ public class PointService {
 		} else if (user.point() < amount) {
 			throw new IllegalArgumentException("사용 포인트가 부족합니다.");
 		} else {
-			return this.userPointTable.insertOrUpdate(userId, user.point() - amount);
+			UserPoint updatedUserPoint = this.userPointTable.insertOrUpdate(userId, user.point() - amount);
+			this.pointHistoryTable.insert(userId, amount, TransactionType.USE, updatedUserPoint.updateMillis());
+
+			return updatedUserPoint;
 		}
 	}
 
@@ -42,12 +45,16 @@ public class PointService {
 			throw new IllegalArgumentException("충전 금액은 0보다 큰 숫자이어야 합니다.");
 		}
 
+		long updateAmount = amount;
 		UserPoint user = this.userPointTable.selectById(userId);
-		if (user == null) {
-			return this.userPointTable.insertOrUpdate(userId, amount);
-		} else {
-			return this.userPointTable.insertOrUpdate(userId, user.point() + amount);
+		if (user != null) {
+			updateAmount = user.point() + amount;
 		}
+
+		UserPoint updatedUserPoint =  this.userPointTable.insertOrUpdate(userId, updateAmount);
+		this.pointHistoryTable.insert(userId, amount, TransactionType.CHARGE, updatedUserPoint.updateMillis());
+
+		return updatedUserPoint;
 	}
 
 	public List<PointHistory> getPointHistories(Long userId) {
