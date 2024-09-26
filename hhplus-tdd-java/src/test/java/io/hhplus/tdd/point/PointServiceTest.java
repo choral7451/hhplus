@@ -169,6 +169,27 @@ class PointServiceTest {
 	}
 
 	@Test
+	@DisplayName("유저 포인는 최대급액 100000포인트를 초과할 수 없습니다.")
+	public void chargeExceededMaximumPoint() {
+		//given
+		long userId = 1L;
+		long point = 100000L;
+		long amount = 1L; //
+
+		UserPoint userPoint = new UserPoint(point, point, System.currentTimeMillis());
+		when(userPointTable.selectById(userId)).thenReturn(userPoint);
+
+		// when
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+			pointService.charge(userId, amount);
+		});
+
+		// then
+		assertEquals("충전 금액은 100000포인트를 초과할 수 없습니다.", exception.getMessage());
+		verify(userPointTable, never()).insertOrUpdate(anyLong(), anyLong());
+	}
+
+	@Test
 	@DisplayName("유저의 포인트 충전/이용 내역을 조회합니다.")
 	public void getPointHistories() throws Exception {
 		//given

@@ -62,6 +62,10 @@ public class PointService {
 				updateAmount = user.point() + amount;
 			}
 
+			if (updateAmount > 100000) {
+				throw new IllegalArgumentException("충전 금액은 100000포인트를 초과할 수 없습니다.");
+			}
+
 			UserPoint updatedUserPoint = this.userPointTable.insertOrUpdate(userId, updateAmount);
 			this.pointHistoryTable.insert(userId, amount, TransactionType.CHARGE, updatedUserPoint.updateMillis());
 
